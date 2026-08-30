@@ -1,0 +1,19 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Credentials / secrets
+*.pem
+*.key
+.env
+playground-credentials.json
+
+# Ansible
+*.retry
+
+# OS
+.DS_Store
+Thumbs.db

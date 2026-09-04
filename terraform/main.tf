@@ -20,3 +20,9 @@ module "network" {
   availability_zone = "us-east-1a"
   environment       = "devops-lab"
 }
+module "security" {
+  source = "./modules/security"
+
+  vpc_id      = module.network.vpc_id
+  environment = "devops-lab"
+}

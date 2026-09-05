@@ -61,4 +61,6 @@ module "ansible01" {
   instance_type = "t3.small"
   ami_id        = data.aws_ami.ubuntu.id
   environment   = "devops-lab"
+
+  public_key = file(pathexpand("~/.ssh/ansible01.pub"))
 }

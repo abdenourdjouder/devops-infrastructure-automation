@@ -22,3 +22,7 @@ variable "environment" {
   description = "Environment name"
   type        = string
 }
+variable "public_key" {
+  description = "SSH public key for administrative access to ANSIBLE01"
+  type        = string
+}

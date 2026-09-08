@@ -1,0 +1,9 @@
+[rmia]
+RMIA01 ansible_host=${rmia01_private_ip}
+RMIA02 ansible_host=${rmia02_private_ip}
+
+[rmia:vars]
+ansible_connection=winrm
+ansible_port=5986
+ansible_winrm_transport=ntlm
+ansible_winrm_server_cert_validation=ignore

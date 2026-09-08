@@ -4,8 +4,12 @@ resource "aws_instance" "this" {
   subnet_id              = var.subnet_id
   vpc_security_group_ids = [var.security_group_id]
   key_name               = aws_key_pair.this.key_name
-  user_data              = file("${path.module}/bootstrap.sh")
-
+  
+  user_data = templatefile("${path.module}/bootstrap.sh", {
+  rmia01_private_ip = var.rmia01_private_ip
+  rmia02_private_ip = var.rmia02_private_ip
+  })
+  
   tags = {
     Name        = "ANSIBLE01"
     Environment = var.environment

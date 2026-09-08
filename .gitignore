@@ -18,3 +18,10 @@ terraform-state-backup.json
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated Terraform inventory
+terraform/generated/
+
+# Terraform plans
+terraform/tfplan
+terraform/plan.txt

@@ -26,3 +26,12 @@ variable "public_key" {
   description = "SSH public key for administrative access to ANSIBLE01"
   type        = string
 }
+variable "rmia01_private_ip" {
+  description = "Private IP address of RMIA01"
+  type        = string
+}
+
+variable "rmia02_private_ip" {
+  description = "Private IP address of RMIA02"
+  type        = string
+}

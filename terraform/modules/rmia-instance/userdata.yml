@@ -1,0 +1,44 @@
+version: 1.0
+
+tasks:
+  - task: executeScript
+    inputs:
+      - frequency: once
+        type: powershell
+        runAs: localSystem
+        content: |
+          $ErrorActionPreference = "Stop"
+
+          Set-Service -Name WinRM -StartupType Automatic
+          Start-Service -Name WinRM
+
+          $cert = New-SelfSignedCertificate `
+              -DnsName $env:COMPUTERNAME `
+              -CertStoreLocation "Cert:\LocalMachine\My" `
+              -KeyLength 2048 `
+              -KeyAlgorithm RSA `
+              -HashAlgorithm SHA256
+
+          $thumbprint = $cert.Thumbprint
+
+          Get-ChildItem WSMan:\localhost\Listener |
+              Where-Object { $_.Keys -match "Transport=HTTPS" } |
+              ForEach-Object {
+                  Remove-Item -Path $_.PSPath -Recurse -Force
+              }
+
+          New-Item `
+              -Path WSMan:\localhost\Listener `
+              -Transport HTTPS `
+              -Address * `
+              -CertificateThumbPrint $thumbprint `
+              -Force
+
+          New-NetFirewallRule `
+              -DisplayName "WinRM HTTPS 5986" `
+              -Direction Inbound `
+              -Protocol TCP `
+              -LocalPort 5986 `
+              -Action Allow
+
+          Restart-Service WinRM

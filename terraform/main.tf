@@ -63,4 +63,94 @@ module "ansible01" {
   environment   = "devops-lab"
 
   public_key = file(pathexpand("~/.ssh/ansible01.pub"))
+
+  rmia01_private_ip = module.rmia01.private_ip
+  rmia02_private_ip = module.rmia02.private_ip
+}
+
+module "rmia" {
+  source = "./modules/rmia"
+
+  vpc_id = module.network.vpc_id
+
+  ansible_security_group_id = module.security.security_group_id
+
+  environment = "devops-lab"
+}
+
+resource "aws_key_pair" "rmia" {
+  key_name   = "devops-lab-rmia-admin"
+  public_key = file(pathexpand("~/.ssh/rmia.pub"))
+
+  tags = {
+    Name        = "devops-lab-rmia-admin"
+    Environment = "devops-lab"
+    Role        = "rmia-windows-admin"
+  }
+}
+
+module "rmia01" {
+  source = "./modules/rmia-instance"
+
+  name              = "RMIA01"
+  ami_id            = "ami-040a155879de85e73"
+  instance_type     = "t3.small"
+  subnet_id         = module.network.subnet_id
+  security_group_id = module.rmia.security_group_id
+  key_name          = aws_key_pair.rmia.key_name
+  environment       = "devops-lab"
+  role              = "rmia-tomcat7"
+
+}
+
+module "rmia02" {
+  source = "./modules/rmia-instance"
+
+  name              = "RMIA02"
+  ami_id            = "ami-040a155879de85e73"
+  instance_type     = "t3.small"
+  subnet_id         = module.network.subnet_id
+  security_group_id = module.rmia.security_group_id
+  key_name          = aws_key_pair.rmia.key_name
+  environment       = "devops-lab"
+  role              = "rmia-tomcat9"
+
+}
+resource "local_file" "ansible_inventory" {
+  filename = "${path.module}/generated/hosts"
+
+  content = templatefile(
+    "${path.module}/inventory.tftpl",
+    {
+      rmia01_private_ip = module.rmia01.private_ip
+      rmia02_private_ip = module.rmia02.private_ip
+    }
+  )
+}
+
+resource "null_resource" "ansible_inventory_sync" {
+  triggers = {
+    inventory = local_file.ansible_inventory.content
+  }
+
+  connection {
+    type        = "ssh"
+    host        = module.ansible01.public_ip
+    user        = "ubuntu"
+    private_key = file(pathexpand("~/.ssh/ansible01"))
+  }
+
+  provisioner "file" {
+    source      = local_file.ansible_inventory.filename
+    destination = "/tmp/hosts"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo mkdir -p /etc/ansible/inventory",
+      "sudo cp /tmp/hosts /etc/ansible/inventory/hosts",
+      "sudo chown root:root /etc/ansible/inventory/hosts",
+      "sudo chmod 644 /etc/ansible/inventory/hosts"
+    ]
+  }
 }

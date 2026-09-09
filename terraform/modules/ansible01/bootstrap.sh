@@ -23,8 +23,11 @@ ansible-galaxy collection install ansible.windows
 
 # Ansible directory structure
 mkdir -p /etc/ansible/inventory
+mkdir -p /etc/ansible/inventory/host_vars
 mkdir -p /etc/ansible/group_vars
 mkdir -p /etc/ansible/playbooks
+
+chown -R ubuntu:ubuntu /etc/ansible/inventory/host_vars
 
 # Ansible configuration
 cat > /etc/ansible/ansible.cfg <<'EOF'
@@ -32,6 +35,7 @@ cat > /etc/ansible/ansible.cfg <<'EOF'
 inventory = /etc/ansible/inventory/hosts
 host_key_checking = False
 interpreter_python = auto_silent
+vault_password_file = /etc/ansible/.vault_pass
 EOF
 
 # Ansible inventory

@@ -154,3 +154,25 @@ resource "null_resource" "ansible_inventory_sync" {
     ]
   }
 }
+resource "null_resource" "ansible_secrets_bootstrap" {
+  triggers = {
+    ansible01_instance_id = module.ansible01.instance_id
+    rmia01_instance_id    = module.rmia01.instance_id
+    rmia02_instance_id    = module.rmia02.instance_id
+  }
+
+  depends_on = [
+    null_resource.ansible_inventory_sync
+  ]
+
+  provisioner "local-exec" {
+    interpreter = ["PowerShell", "-Command"]
+
+    command = <<-EOT
+      & "${path.module}/scripts/bootstrap-ansible-secrets.ps1" `
+        -AnsiblePublicIp "${module.ansible01.public_ip}" `
+        -Rmia01InstanceId "${module.rmia01.instance_id}" `
+        -Rmia02InstanceId "${module.rmia02.instance_id}"
+    EOT
+  }
+}

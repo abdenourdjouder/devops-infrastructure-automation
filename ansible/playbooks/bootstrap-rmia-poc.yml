@@ -1,0 +1,30 @@
+---
+- name: Prepare RMIA servers for WAR deployment POC
+  hosts: rmia
+  gather_facts: false
+
+  vars:
+    tomcat_config:
+      RMIA01:
+        service: "Spooler"
+        home: "C:\\Tomcat7"
+
+      RMIA02:
+        service: "Spooler"
+        home: "C:\\Tomcat9"
+
+  tasks:
+
+    - name: Load RMIA Tomcat configuration
+      ansible.builtin.set_fact:
+        tomcat_service: "{{ tomcat_config[inventory_hostname].service }}"
+        tomcat_home: "{{ tomcat_config[inventory_hostname].home }}"
+
+    - name: Create Tomcat directories
+      ansible.windows.win_file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ tomcat_home }}"
+        - "{{ tomcat_home }}\\webapps"
+        - "{{ tomcat_home }}\\logs"

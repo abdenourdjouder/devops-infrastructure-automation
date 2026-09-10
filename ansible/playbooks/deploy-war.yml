@@ -1,0 +1,61 @@
+---
+- name: Deploy WAR on RMIA servers
+  hosts: rmia
+  gather_facts: false
+
+  vars:
+    war_source_directory: "/opt/rmia-share"
+    war_file: "ramia-ws.war"
+
+    tomcat_config:
+      RMIA01:
+        service: "Spooler"
+        home: "C:\\Tomcat7"
+
+      RMIA02:
+        service: "Spooler"
+        home: "C:\\Tomcat9"
+
+  tasks:
+
+    - name: Load Tomcat configuration
+      ansible.builtin.set_fact:
+        tomcat_service: "{{ tomcat_config[inventory_hostname].service }}"
+        tomcat_home: "{{ tomcat_config[inventory_hostname].home }}"
+
+    - name: Stop Tomcat
+      ansible.windows.win_service:
+        name: "{{ tomcat_service }}"
+        state: stopped
+
+    - name: Archive and clear Tomcat logs
+      ansible.windows.win_shell: |
+        $logs = "{{ tomcat_home }}\logs"
+
+        if (Test-Path $logs) {
+            $timestamp = Get-Date -Format "yyMMdd-HHmm"
+            $archive = Join-Path $logs "archive\$timestamp"
+
+            New-Item -ItemType Directory -Force -Path $archive | Out-Null
+
+            Get-ChildItem $logs -File |
+              Where-Object {
+                $_.Extension -eq ".log" -or
+                $_.Name -like "*access_log*"
+              } |
+              Move-Item -Destination $archive -Force
+        }
+
+    - name: Deploy WAR
+      ansible.windows.win_copy:
+        src: "{{ war_source_directory }}/{{ war_file }}"
+        dest: "{{ tomcat_home }}\\webapps\\{{ war_file }}"
+
+    - name: Start Tomcat
+      ansible.windows.win_service:
+        name: "{{ tomcat_service }}"
+        state: started
+
+    - name: Deployment summary
+      ansible.builtin.debug:
+        msg: "{{ war_file }} deployed on {{ inventory_hostname }}"

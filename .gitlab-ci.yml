@@ -1,0 +1,119 @@
+spec:
+  inputs:
+    war_ramia_ws:
+      description: "Déployer ramia-ws.war"
+      type: boolean
+      default: true
+
+    war_rmia_webapp:
+      description: "Déployer rmia-webapp.war"
+      type: boolean
+      default: false
+
+    war_rmia_soap_ws:
+      description: "Déployer rmia-soap-ws.war"
+      type: boolean
+      default: false
+
+    war_rmia_rest_ws:
+      description: "Déployer rmia-rest-ws.war"
+      type: boolean
+      default: false
+
+    rmia01:
+      description: "Déployer sur RMIA01"
+      type: boolean
+      default: true
+
+    rmia02:
+      description: "Déployer sur RMIA02"
+      type: boolean
+      default: false
+
+---
+
+stages:
+  - deploy
+
+deploy_war:
+  stage: deploy
+  image: alpine:latest
+
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/ansible01
+    - chmod 600 ~/.ssh/ansible01
+    - ssh-keyscan -H "$ANSIBLE_HOST" >> ~/.ssh/known_hosts
+
+  script:
+    - |
+      # --------------------------------------------------
+      # Construction de la liste des WAR sélectionnés
+      # --------------------------------------------------
+
+      SELECTED_WARS=""
+
+      if [ "$[[ inputs.war_ramia_ws ]]" = "true" ]; then
+        SELECTED_WARS="ramia-ws.war"
+      fi
+
+      if [ "$[[ inputs.war_rmia_webapp ]]" = "true" ]; then
+        SELECTED_WARS="${SELECTED_WARS:+$SELECTED_WARS,}rmia-webapp.war"
+      fi
+
+      if [ "$[[ inputs.war_rmia_soap_ws ]]" = "true" ]; then
+        SELECTED_WARS="${SELECTED_WARS:+$SELECTED_WARS,}rmia-soap-ws.war"
+      fi
+
+      if [ "$[[ inputs.war_rmia_rest_ws ]]" = "true" ]; then
+        SELECTED_WARS="${SELECTED_WARS:+$SELECTED_WARS,}rmia-rest-ws.war"
+      fi
+
+      if [ -z "$SELECTED_WARS" ]; then
+        echo "ERREUR : aucun WAR sélectionné."
+        exit 1
+      fi
+
+      # --------------------------------------------------
+      # Construction de la liste des serveurs
+      # --------------------------------------------------
+
+      TARGET_SERVERS=""
+
+      if [ "$[[ inputs.rmia01 ]]" = "true" ]; then
+        TARGET_SERVERS="RMIA01"
+      fi
+
+      if [ "$[[ inputs.rmia02 ]]" = "true" ]; then
+        TARGET_SERVERS="${TARGET_SERVERS:+$TARGET_SERVERS,}RMIA02"
+      fi
+
+      if [ -z "$TARGET_SERVERS" ]; then
+        echo "ERREUR : aucun serveur RMIA sélectionné."
+        exit 1
+      fi
+
+      echo "WAR sélectionné(s) : $SELECTED_WARS"
+      echo "Serveur(s) cible(s) : $TARGET_SERVERS"
+
+      # --------------------------------------------------
+      # POC
+      # --------------------------------------------------
+      # Pour le moment le playbook déploie toujours
+      # ramia-ws.war, quelle que soit la sélection.
+      #
+      # La gestion réelle de plusieurs WAR sera ajoutée
+      # ultérieurement.
+      # --------------------------------------------------
+
+      WAR_FILE="ramia-ws.war"
+
+      echo "WAR réellement déployé (POC) : $WAR_FILE"
+
+      ssh -i ~/.ssh/ansible01 "$ANSIBLE_USER@$ANSIBLE_HOST" \
+        "ansible-playbook /etc/ansible/playbooks/deploy-war.yml \
+        --limit '$TARGET_SERVERS' \
+        -e 'war_file=$WAR_FILE'"
+
+  when: manual

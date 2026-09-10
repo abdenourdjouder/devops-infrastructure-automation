@@ -159,6 +159,10 @@ resource "null_resource" "ansible_secrets_bootstrap" {
     ansible01_instance_id = module.ansible01.instance_id
     rmia01_instance_id    = module.rmia01.instance_id
     rmia02_instance_id    = module.rmia02.instance_id
+
+    bootstrap_script_hash = filesha256(
+      "${path.module}/scripts/bootstrap-ansible-secrets.ps1"
+    )
   }
 
   depends_on = [
@@ -169,10 +173,12 @@ resource "null_resource" "ansible_secrets_bootstrap" {
     interpreter = ["PowerShell", "-Command"]
 
     command = <<-EOT
-      & "${path.module}/scripts/bootstrap-ansible-secrets.ps1" `
-        -AnsiblePublicIp "${module.ansible01.public_ip}" `
-        -Rmia01InstanceId "${module.rmia01.instance_id}" `
-        -Rmia02InstanceId "${module.rmia02.instance_id}"
-    EOT
+  & "${path.module}/scripts/bootstrap-ansible-secrets.ps1" `
+    -AnsiblePublicIp "${module.ansible01.public_ip}" `
+    -Rmia01InstanceId "${module.rmia01.instance_id}" `
+    -Rmia02InstanceId "${module.rmia02.instance_id}" `
+    -Rmia01PrivateIp "${module.rmia01.private_ip}" `
+    -Rmia02PrivateIp "${module.rmia02.private_ip}"
+  EOT
   }
 }

@@ -6,7 +6,13 @@ param (
     [string]$Rmia01InstanceId,
 
     [Parameter(Mandatory = $true)]
-    [string]$Rmia02InstanceId
+    [string]$Rmia02InstanceId,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Rmia01PrivateIp,
+
+    [Parameter(Mandatory = $true)]
+    [string]$Rmia02PrivateIp
 )
 
 $ErrorActionPreference = "Stop"
@@ -14,6 +20,18 @@ $ErrorActionPreference = "Stop"
 $sshKey    = "$env:USERPROFILE\.ssh\ansible01"
 $rmiaKey   = "$env:USERPROFILE\.ssh\rmia"
 $awsProfile = "kodekloud"
+
+Write-Host "Waiting for WinRM on RMIA servers..."
+
+ssh `
+    -o StrictHostKeyChecking=no `
+    -i $sshKey `
+    "ubuntu@$AnsiblePublicIp" `
+    "for ip in '$Rmia01PrivateIp' '$Rmia02PrivateIp'; do echo `"Waiting for WinRM on `$ip...`"; for i in {1..30}; do if timeout 2 bash -c `"echo > /dev/tcp/`$ip/5986`" 2>/dev/null; then echo `"WinRM ready on `$ip`"; break; fi; if [ `$i -eq 30 ]; then echo `"ERROR: WinRM unavailable on `$ip`"; exit 1; fi; sleep 10; done; done"
+
+if ($LASTEXITCODE -ne 0) {
+    throw "RMIA WinRM readiness check failed."
+}
 
 Write-Host "Retrieving RMIA01 Administrator password..."
 $rmia01Password = aws ec2 get-password-data `
